@@ -66,8 +66,7 @@ function initDApp(wallet: WalletState, hooks: Hooks): Context {
     let USDTContract = new ethers.Contract(
         USDT_CONTRACT_ADDRESS,
         AminoTokenAbi,
-        walletProvider.getSigner()
-        // provider
+        provider
     )
 
     //subscribe some stuff
@@ -188,17 +187,6 @@ function App({ className }: Props) {
                     </div>
                 )}
 
-                {connectedWallets.map(({ label, accounts }) => {
-                    return (
-                        <div key={label}>
-                            <div>{label}</div>
-                            <div>
-                                Accounts: {JSON.stringify(accounts, null, 2)}
-                            </div>
-                        </div>
-                    )
-                })}
-
                 {wallet && (
                     <div>
                         <label>Switch Chain</label>
@@ -221,33 +209,32 @@ function App({ className }: Props) {
                                 })}
                             </select>
                         )}
-                        <button
-                            onClick={() => {
-                                context &&
-                                    play(
-                                        BigNumber.from(1000000000),
-                                        BigNumber.from(5000000000),
-                                        context,
-                                        wallet!,
-                                        selectedAccount?.address
-                                    )
-                            }}
-                        >
-                            PayAndPermit
-                        </button>
-                        <button
-                            onClick={async () => {
-                                context!.paymentsContractSigner.pay(
-                                    USDT_CONTRACT_ADDRESS,
-                                    BigNumber.from(1000000000),
-                                    { gasLimit: 150000 }
-                                )
-                            }}
-                        >
-                            Pay
-                        </button>
                     </div>
                 )}
+                {connectedWallets.map(({ label, accounts }) => {
+                    return (
+                        <div key={label}>
+                            <div>{label}</div>
+                            <div>
+                                Accounts: {JSON.stringify(accounts, null, 2)}
+                            </div>
+                        </div>
+                    )
+                })}
+                <button
+                    onClick={() => {
+                        context &&
+                            play(
+                                BigNumber.from(1000000000),
+                                BigNumber.from(5000000000),
+                                context,
+                                wallet!,
+                                selectedAccount?.address
+                            )
+                    }}
+                >
+                    Play
+                </button>
             </div>
         </div>
     )
@@ -282,7 +269,7 @@ async function play(
     let permit = {
         owner: address,
         spender: PAYMENTS_CONTRACT_ADDRESS,
-        value: allowance,
+        value,
         nonce,
         deadline,
     }
