@@ -14,7 +14,7 @@ contract Payments is Initializable, OwnableUpgradeable {
 	function initialize(uint256 _x) public initializer {
 		__Ownable_init();
         x = _x;
-    }
+	}
 
 	receive() external payable {}
 
