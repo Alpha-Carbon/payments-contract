@@ -115,8 +115,14 @@ function App({ className }: Props) {
                     // console.log(`new block: ${block}`)
                 },
                 onTokenReceived: async (from, token, value) => {
+                    let kind = token
+                    switch (token) {
+                        case USDT_CONTRACT_ADDRESS:
+                            kind = 'USDT'
+                            break
+                    }
                     toast(
-                        `${value} Tokens(${token}) received by contract from: ${from}`
+                        `${value} Tokens(${kind}) received by contract from: ${from}`
                     )
                 },
                 setUSDTBalance: setTokenBalance,
@@ -220,6 +226,7 @@ function App({ className }: Props) {
                         context &&
                             play(
                                 BigNumber.from(1000000000),
+                                BigNumber.from(5000000000),
                                 context,
                                 wallet!,
                                 selectedAccount?.address
@@ -235,6 +242,7 @@ function App({ className }: Props) {
 
 async function play(
     bnValue: BigNumber,
+    bnAllowance: BigNumber,
     context: Context,
     wallet: WalletState,
     address?: string
@@ -244,6 +252,7 @@ async function play(
     let verifyingContract = context.USDTContract.address.toLowerCase()
 
     let value = bnValue.toString()
+    let allowance = bnAllowance.toString()
     let nonce = (await context.USDTContract.nonces(address)).toString()
     let deadline = BigNumber.from(
         '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
@@ -283,12 +292,13 @@ async function play(
 
         context.paymentsContractSigner.payWithPermit(
             USDT_CONTRACT_ADDRESS,
-            50,
-            500,
-            50000,
+            value,
+            allowance,
+            deadline,
             sig.v,
             utils.arrayify(sig.r),
-            utils.arrayify(sig.s)
+            utils.arrayify(sig.s),
+            { gasLimit: 150000 }
         )
 
         // context.paymentsContractSigner.pay(
