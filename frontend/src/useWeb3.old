@@ -1,0 +1,170 @@
+import React, { useEffect, useContext, useState } from 'react'
+import { ethers, providers, BigNumber } from 'ethers'
+import { API, Wallet } from 'bnc-onboard/dist/src/interfaces'
+import { toast } from 'react-toastify'
+
+import Abi from './PaymentsAbi.json'
+
+// #NOTE this is expected to be the localhost dev chain on ALITH's first contract
+const CONTRACT_ADDRESS = '0xc01ee7f10ea4af4673cfff62710e1d7792aba8f3'
+
+interface ContextData {
+    address?: string
+    network?: number
+    balance?: string
+    wallet?: Wallet
+    onboard?: API
+    currentBlock?: number
+    contract?: ethers.Contract
+}
+
+interface ContextActions {
+    ready: () => Promise<boolean> // function as property declaration
+    disconnect: () => void
+}
+
+type Context = [ContextData, ContextActions]
+
+let provider: providers.JsonRpcProvider | undefined
+const Web3Context = React.createContext<Context>([
+    {},
+    {
+        ready: async () => {
+            return false
+        },
+        disconnect: () => {},
+    },
+])
+export const Web3Provider: React.FC<{}> = ({ children }) => {
+    const [address, setAddress] = useState<string>()
+    const [network, setNetwork] = useState<number>()
+    const [balance, setBalance] = useState<string>()
+    const [wallet, setWallet] = useState<Wallet>()
+    const [onboard, setOnboard] = useState<API>()
+    const [currentBlock, setCurrentBlock] = useState<number>()
+    const [activeContract, setActiveContract] = useState<ethers.Contract>()
+
+    useEffect(() => {
+        const onboard = initOnboard({
+            address: setAddress,
+            network: setNetwork,
+            balance: setBalance,
+            wallet: (wallet: Wallet) => {
+                console.log('wallet set')
+                if (wallet.provider) {
+                    setWallet(wallet)
+                    provider = new ethers.providers.Web3Provider(
+                        wallet.provider
+                    )
+                } else {
+                    provider = undefined
+                    setWallet(undefined)
+                }
+            },
+        })
+        setOnboard(onboard)
+    }, [])
+
+    useEffect(() => {
+        const previouslySelectedWallet =
+            window.localStorage.getItem('selectedWallet')
+        if (previouslySelectedWallet && onboard) {
+            ;(async () => {
+                await onboard.walletSelect(previouslySelectedWallet)
+                await onboard.walletCheck()
+            })()
+        }
+    }, [onboard])
+
+    useEffect(() => {
+        ;(async () => {
+            console.log('network changed: ', network, onboard)
+            if (!network || !onboard) return
+
+            onboard.config({ networkId: network })
+
+            if (wallet) {
+                provider = new ethers.providers.Web3Provider(wallet.provider)
+                let p: providers.JsonRpcProvider =
+                    new ethers.providers.Web3Provider(wallet.provider)
+                let contract = new ethers.Contract(
+                    CONTRACT_ADDRESS,
+                    Abi,
+                    p.getSigner()
+                )
+                subscribeContractEvents(contract)
+                setActiveContract(contract)
+                provider.on('block', async (block) => {
+                    setCurrentBlock(block)
+                })
+                // console.log(activeContract)
+            }
+            setNetwork(network)
+        })()
+    }, [onboard, network, wallet])
+
+    // console.log(wallet?.provider)
+
+    async function readyToTransact() {
+        console.log('READY', provider)
+        if (!provider) {
+            //#HACK if provider is set, onboard should be set.
+            const walletSelected = await onboard!.walletSelect()
+            if (!walletSelected) return false
+        }
+
+        try {
+            return await onboard!.walletCheck()
+        } catch (e) {
+            return false
+        }
+    }
+
+    async function subscribeContractEvents(contract: ethers.Contract) {
+        // event tokensReceived(address from,address token,uint256 value);
+        contract.on(
+            'tokensReceived',
+            async (from: string, token: string, value: BigNumber) => {
+                toast(
+                    `${value} Tokens(${token}) received by contract from: ${from}`
+                )
+            }
+        )
+    }
+
+    const disconnectWallet = () => {
+        if (onboard) {
+            try {
+                onboard.walletReset()
+            } catch (e) {
+                console.error(e)
+            }
+            setBalance(undefined)
+            setAddress(undefined)
+            window.localStorage.removeItem('selectedWallet')
+        }
+    }
+
+    return (
+        <Web3Context.Provider
+            value={[
+                {
+                    address,
+                    network,
+                    balance,
+                    wallet,
+                    onboard,
+                    currentBlock,
+                    contract: activeContract,
+                },
+                { ready: readyToTransact, disconnect: disconnectWallet },
+            ]}
+        >
+            {children}
+        </Web3Context.Provider>
+    )
+}
+
+export default function useWeb3() {
+    return useContext(Web3Context)
+}

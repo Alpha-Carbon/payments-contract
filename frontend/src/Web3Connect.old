@@ -1,0 +1,138 @@
+import React, { useContext, useEffect, useState } from 'react'
+import styled from 'styled-components'
+
+import { ethers, providers, BigNumber, utils } from 'ethers'
+// import useWeb3 from './useWeb3'
+
+function EIP712Struct(msg: any): any {
+    return {
+        domain: {
+            name: 'HappySwap',
+            version: '1',
+            chainId: 1,
+            verifyingContract: '0x0000000000000000000000000000000000000001',
+        },
+        primaryType: 'Token',
+        message: msg,
+        types: {
+            EIP712Domain: [
+                { name: 'name', type: 'string' },
+                { name: 'version', type: 'string' },
+                { name: 'chainId', type: 'uint256' },
+                { name: 'verifyingContract', type: 'address' },
+            ],
+            Token: [
+                { name: 'purpose', type: 'string' },
+                { name: 'kind', type: 'string' },
+                { name: 'token', type: 'string' },
+            ],
+        },
+    }
+}
+
+//#TODO check if the wallet is already connected
+const Web3Connect: React.FC = () => {
+    const [
+        { address, balance, network, onboard, wallet },
+        { ready, disconnect },
+    ] = useWeb3()
+
+    // data fetching.  State can be confusing, look at the useEffect below carefully
+    //const [getChallenge, setGetChallenge] = useState<boolean | undefined>(false);
+
+    // const { data: challenge } = useSWR(getChallenge ? `${BASE_URL}/api/challenge?address=${address}` : null,
+    //     fetcher, {
+    //     revalidateIfStale: false,
+    //     revalidateOnFocus: false,
+    //     revalidateOnReconnect: false
+    // })
+
+    useEffect(() => {
+        const pledge = async () => {
+            const provider = new ethers.providers.Web3Provider(wallet!.provider)
+
+            //#NOTE references:
+            // - https://eips.ethereum.org/EIPS/eip-712#arbitrary-messages
+            // - https://docs.metamask.io/guide/signing-data.html
+            // - https://medium.com/alpineintel/issuing-and-verifying-eip-712-challenges-with-go-32635ca78aaf
+            // const message = {
+            //     purpose:
+            //         'I am excited about Decentralized Real Estate Trading!',
+            //     kind: 'JWT',
+            //     token: challenge,
+            // }
+            // const eip712Struct = EIP712Struct(message)
+
+            try {
+                // const signature = await provider.send('eth_signTypedData_v4', [
+                //     address,
+                //     JSON.stringify(eip712Struct),
+                // ])
+                // let proofParams = {
+                //     message: message,
+                //     signature: signature,
+                //     scheme: 'Ethereum',
+                // }
+                // let resp = await prove(proofParams)
+                // console.log('proof response: ', resp)
+                // if (!resp.ok) {
+                //     return
+                // }
+            } catch (e: any) {
+                console.log('metamsk rpc error: ', e)
+
+                switch (e.code) {
+                    case -32603:
+                        break
+                    case 4001: // User denied message signature
+                        break
+                    default:
+                        alert('Unknown error')
+                }
+            }
+        }
+    }, [address, wallet])
+
+    const isConnected = !!address
+    return (
+        <Button
+            // disabled={!challenge}
+            key="connect"
+            onClick={async (e) => {
+                console.log('test', isConnected)
+                e.preventDefault()
+                if (!isConnected) {
+                    // let ready = await onboard?.walletSelect()
+                    // await onboard?.walletCheck()
+                    const isReady = await ready()
+                }
+            }}
+        >
+            Pledge
+        </Button>
+    )
+}
+
+function shorten(address: string | null | undefined) {
+    if (!address) return ''
+    return address.slice(0, 5) + '...' + address.slice(-2)
+}
+
+const Button = styled.button`
+    background-color: #e05d5d;
+    padding: 8px 24px;
+    border-radius: 24px;
+    font-family: Nunito;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 32px;
+    display: inline-block;
+    text-align: center;
+    color: white;
+    border: none;
+
+    cursor: pointer;
+`
+
+export default Web3Connect
