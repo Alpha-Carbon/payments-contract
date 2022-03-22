@@ -16,7 +16,7 @@
 │       ├── AminoTokenAbi.json      ; ERC20 + EIP2612 Contract ABI
 │       ├── App.tsx                 ; All Frontend Interaction Logic
 │       ├── PaymentsAbi.json        ; Payments Contract ABI
-│       ├── initOnboard.ts          ; Web3 Connector
+│       └── initOnboard.ts          ; Web3 Connector
 ├── lib                             ; Third party solidity dependencies
 ├── remappings.txt                  ; Solidity library path remappings
 ├── scripts                         ; Tooling
@@ -28,7 +28,6 @@
 ```
 
 ## Getting Started
-
 
 ### Development
 
