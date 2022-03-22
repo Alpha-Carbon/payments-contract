@@ -17,6 +17,9 @@ $(shell mkdir -p ${OUTPUT_DIR})
 clean:
 	forge clean
 
+project-tree:
+	tree -I 'lib|out|node_modules|cache|README*|*.lock|public|package.json|foundry.toml|tsconfig.json'
+
 deps:
 	curl -L https://foundry.paradigm.xyz | bash
 	foundryup
@@ -39,9 +42,12 @@ abi-out:
 	cp -r ./out/AminoTokenAbi.json ./frontend/src
 
 testnet:
-	docker run --rm -p 9944:9944 -p 9933:9933 --name amino-dev gcr.io/alpha-carbon/amino:v0.8.0 --dev --execution=native --ws-external --rpc-external --sealing 3000 -lwarn,pallet_ethereum=trace,evm=trace
+	docker run --rm -p 9944:9944 -p 9933:9933 --name amino-dev gcr.io/alpha-carbon/amino:v0.8.0 --dev --execution=native --ws-external --rpc-external --sealing 3000 -linfo,pallet_ethereum=trace,evm=trace,pallet_vrf_oracle=error
 
 deploy-testnet: export CHAIN_PARAMS=--rpc-url http://localhost:9933 --private-key ${ALITH_KEY}
 deploy-testnet:
 	@forge create ${CHAIN_PARAMS} --legacy Payments
 	@cast send ${CHAIN_PARAMS} 0xc01ee7f10ea4af4673cfff62710e1d7792aba8f3 "initialize(uint256)" 42 
+
+frontend-dev:
+	(cd frontend && yarn start)

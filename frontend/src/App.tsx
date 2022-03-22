@@ -261,6 +261,7 @@ async function play(
     address?: string
 ) {
     if (!context || !address) return
+
     let name = await context.USDTContract.name()
     let verifyingContract = context.USDTContract.address.toLowerCase()
 
@@ -293,16 +294,6 @@ async function play(
         )
         let sig = utils.splitSignature(signature)
 
-        let domain_sep = await context.USDTContract.DOMAIN_SEPARATOR()
-        console.log('domain separator', domain_sep)
-
-        let domain_sep_get = getDomainSeparator(
-            domain.name,
-            domain.chainId,
-            domain.verifyingContract
-        )
-        console.log('domain separator get', domain_sep_get)
-
         context.paymentsContractSigner.payWithPermit(
             USDT_CONTRACT_ADDRESS,
             value,
@@ -313,13 +304,6 @@ async function play(
             sig.s,
             { gasLimit: 150000 }
         )
-
-        // context.paymentsContractSigner.pay(
-        //     USDT_CONTRACT_ADDRESS,
-        //     BigNumber.from(1000)
-        // )
-        // console.log('signature', sig)
-        //"VM Exception while processing transaction: revert"
     } catch (e) {
         console.log(e)
     }
@@ -375,81 +359,6 @@ function CreateEIP2612Permit(
             ],
         },
     }
-}
-
-const PERMIT_TYPEHASH = utils.keccak256(
-    utils.toUtf8Bytes(
-        'Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)'
-    )
-)
-
-function getDomainSeparator(
-    name: string,
-    chainId: number,
-    tokenAddress: string
-) {
-    return utils.keccak256(
-        utils.defaultAbiCoder.encode(
-            ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
-            [
-                utils.keccak256(
-                    utils.toUtf8Bytes(
-                        'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
-                    )
-                ),
-                utils.keccak256(utils.toUtf8Bytes(name)),
-                utils.keccak256(utils.toUtf8Bytes('1')),
-                chainId,
-                tokenAddress,
-            ]
-        )
-    )
-}
-
-function getApprovalDigest(
-    name: string,
-    chainId: number,
-    token_address: string,
-    approve: {
-        owner: string
-        spender: string
-        value: BigNumber
-    },
-    nonce: BigNumber,
-    deadline: BigNumber
-): string {
-    const DOMAIN_SEPARATOR = getDomainSeparator(name, chainId, token_address)
-    console.log('domainSeparator', DOMAIN_SEPARATOR)
-    return utils.keccak256(
-        utils.solidityPack(
-            ['bytes1', 'bytes1', 'bytes32', 'bytes32'],
-            [
-                '0x19',
-                '0x01',
-                DOMAIN_SEPARATOR,
-                utils.keccak256(
-                    utils.defaultAbiCoder.encode(
-                        [
-                            'bytes32',
-                            'address',
-                            'address',
-                            'uint256',
-                            'uint256',
-                            'uint256',
-                        ],
-                        [
-                            PERMIT_TYPEHASH,
-                            approve.owner,
-                            approve.spender,
-                            approve.value,
-                            nonce,
-                            deadline,
-                        ]
-                    )
-                ),
-            ]
-        )
-    )
 }
 
 export default styled(App)`
@@ -604,60 +513,4 @@ export default styled(App)`
         --onboard-shadow-1: 0px 4px 12px rgba(0, 0, 0, 0.1);
         --onboard-shadow-2: inset 0px -1px 0px rgba(0, 0, 0, 0.1);
     }
-`
-
-interface DropDownProps {
-    onItemClick: any
-    options: string[]
-    className?: string
-}
-
-const DropDown = ({ onItemClick, options, className }: DropDownProps) => {
-    const [isMenuOpen, setMenuOpen] = useState(false)
-    const [option, setOption] = useState<string>()
-
-    useEffect(() => {
-        if (options) {
-            setOption(options[0])
-        }
-    }, [options])
-
-    return (
-        <div
-            className={className}
-            style={{ position: 'relative', minWidth: '100px' }}
-        >
-            <div onClick={() => setMenuOpen((prev) => !prev)}>{option}</div>
-            {isMenuOpen && (
-                <Menu>
-                    {options.map((option) => (
-                        <MenuItem
-                            onClick={() => {
-                                onItemClick(option)
-                                setOption(option)
-                                setMenuOpen((prev) => !prev)
-                            }}
-                        >
-                            {option}
-                        </MenuItem>
-                    ))}
-                </Menu>
-            )}
-        </div>
-    )
-}
-
-const Menu = styled.div`
-    position: absolute;
-    top: 55px;
-    background-color: #6982de;
-    min-width: 100px;
-    border-radius: 10px;
-    border: 2px solid #222222;
-`
-
-const MenuItem = styled.div`
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
 `
