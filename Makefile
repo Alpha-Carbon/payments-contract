@@ -50,4 +50,4 @@ deploy-testnet:
 	@cast send ${CHAIN_PARAMS} 0xc01ee7f10ea4af4673cfff62710e1d7792aba8f3 "initialize(uint256)" 42 
 
 frontend-dev:
-	(cd frontend && yarn start)
+	(cd frontend && yarn install && yarn start)
